@@ -1,2 +1,9 @@
-# sip_test
-sip_proxy
+sip_test
+=====
+
+An OTP application
+
+Build
+-----
+
+    $ rebar3 compile

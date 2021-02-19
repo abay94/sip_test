@@ -1,0 +1,11 @@
+{application,sip_test,
+             [{description,"An OTP application"},
+              {vsn,"0.1.0"},
+              {registered,[]},
+              {mod,{sip_test_app,[]}},
+              {applications,[kernel,stdlib]},
+              {env,[]},
+              {modules,[sip_test_app,sip_test_register,sip_test_srv,
+                        sip_test_sup,sip_test_util]},
+              {licenses,["Apache 2.0"]},
+              {links,[]}]}.
