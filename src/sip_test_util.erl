@@ -19,16 +19,16 @@ parse({udp,_UdpPort,_FormIp, _FromPort, <<"SIP/2.0 200 OK", _Rest/binary>>=Msg})
   case sip_test_register:get_user(AOR) of
     none -> thereisno_account;
     {IP,PORT} ->
-      ok = sip_test_srv:response({IP, PORT,Msg})
+      ok = sip_test_srv:send({IP, PORT,Msg})
   end;
 
 parse({udp,_UdpPort,_FormIp, _FromPort, <<"SIP/2.0 180 Ringing", _Rest/binary>>=Msg}) ->
   [_|SplitMsg] = binary:split(Msg,<<"\r\n">>,[global]),
   AOR = get_name(SplitMsg),
   case sip_test_register:get_user(AOR) of
-  none -> thereis_no_account;
-  {IP,PORT} ->
-  ok = sip_test_srv:response({IP, PORT,Msg})
+    none -> thereis_no_account;
+    {IP,PORT} ->
+      ok = sip_test_srv:send({IP, PORT,Msg})
   end;
 
 parse({udp,_UdpPort,_FormIp, _FromPort, <<"INVITE ", _Rest/binary>>=Msg}) ->
@@ -37,7 +37,7 @@ parse({udp,_UdpPort,_FormIp, _FromPort, <<"INVITE ", _Rest/binary>>=Msg}) ->
   case sip_test_register:get_user(AOR) of
     none -> thereisno_account;
     {IP,PORT} ->
-      ok = sip_test_srv:invite({IP, PORT,Msg})
+      ok = sip_test_srv:send({IP, PORT,Msg})
   end;
 
 parse({udp,_UdpPort,FormIp, FromPort, <<"REGISTER ", _Rest/binary>>=Msg}) ->
@@ -50,7 +50,7 @@ parse({udp,_UdpPort,FormIp, FromPort, <<"REGISTER ", _Rest/binary>>=Msg}) ->
     end,
     <<"">>,ResponseList),
   ok = sip_test_register:register({AOR,{FormIp,FromPort}}),
-  ok = sip_test_srv:reply_register_ok({FormIp, FromPort,Response});
+  ok = sip_test_srv:send({FormIp, FromPort,Response});
 parse(_Msg) ->
   ok.
 

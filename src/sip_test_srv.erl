@@ -10,9 +10,7 @@
 -export(
 [
   start_link/0,
-  reply_register_ok/1,
-  invite/1,
-  response/1
+  send/1
 ]).
 
 %% gen_server callbacks
@@ -41,10 +39,7 @@ handle_call(_Request,_From,State) ->
   {reply, ok, State}.
 
 
-handle_cast({invite,{FormIp, FromPort,Response}},State) ->
-  gen_udp:send(State, FormIp, FromPort, Response),
-  {noreply, State};
-handle_cast({register_ok,{FormIp, FromPort,Response}},State) ->
+handle_cast({send,{FormIp, FromPort,Response}},State) ->
   gen_udp:send(State, FormIp, FromPort, Response),
   {noreply, State};
 handle_cast(_,State) ->
@@ -68,14 +63,6 @@ code_change(_OldVsn, State, _Extra) ->
 %% API
 %% ====================================================================
 
-response({FormIp, FromPort,Response})->
-  gen_server:cast(?MODULE,{register_ok,{FormIp, FromPort,Response}}),
-  ok.
-
-reply_register_ok({FormIp, FromPort,Response})->
-  gen_server:cast(?MODULE,{register_ok,{FormIp, FromPort,Response}}),
-  ok.
-
-invite({FormIp, FromPort,Response}) ->
-  gen_server:cast(?MODULE,{invite,{FormIp, FromPort,Response}}),
+send({FormIp, FromPort,Response})->
+  gen_server:cast(?MODULE,{send,{FormIp, FromPort,Response}}),
   ok.
