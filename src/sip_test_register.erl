@@ -6,6 +6,7 @@
 %%%-------------------------------------------------------------------
 -module(sip_test_register).
 -behaviour(gen_server).
+-include("sip_test.hrl").
 %% API
 -export(
 [
@@ -48,7 +49,7 @@ handle_call(_Request,_From,State) ->
 
 handle_cast({register,{AOR,Description}},Table) ->
   {FormIp,FromPort} = Description,
-  io:fwrite("registered: ~p ,IP: ~p, Port: ~p ~n", [AOR,FormIp,FromPort]),
+  ?LOGINFO("Registered: ~p ,IP: ~p, Port: ~p !!!", [AOR,FormIp,FromPort]),
   true = ets:insert(Table, {AOR, Description}),
   {noreply, Table};
 handle_cast(_,State) ->

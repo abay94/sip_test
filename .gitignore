@@ -1,0 +1,6 @@
+logs
+.rebar
+_build
+*.iml
+.rebar3
+log
