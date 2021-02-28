@@ -12,7 +12,13 @@
 [
   start_link/0,
   send/1,
-  change_udp_port/1
+  change_udp_port/1,
+  send_invite/2,
+  send_ringing/2,
+  send_ok/2,
+  send_ack/2,
+  send_bye/2,
+  send_bye_ok/3
 ]).
 
 -define(DEFAULT_UDP_PORT, 5060).
@@ -27,7 +33,7 @@
   code_change/3
 ]).
 
--record(state, {udp, call_ids=[]}).
+-record(state, {udp, call_ids=#{}}).
 
 start_link() ->
   gen_server:start_link({local,?MODULE},?MODULE,[],[]).
@@ -60,6 +66,29 @@ handle_call(_Request,_From,State) ->
   {reply, ok, State}.
 
 
+handle_cast({send_bye_ok,{IP,PORT},CallId,Msg},#state{udp=UDP,call_ids=CallIDs}=State) ->
+  maps:remove(CallId,CallIDs),
+  gen_udp:send(UDP, IP, PORT, Msg),
+  {noreply, State};
+handle_cast({send_bye,{IP, PORT}, Msg},#state{udp=UDP}=State) ->
+  gen_udp:send(UDP, IP, PORT, Msg),
+  {noreply, State};
+handle_cast({send_ack,{CallId,Msg}},#state{udp=UDP,call_ids=CallIDs}=State) ->
+  {_,{IpTo,PortTo}} = maps:get(CallId,CallIDs),
+  gen_udp:send(UDP, IpTo, PortTo, Msg),
+  {noreply, State};
+handle_cast({send_ok,{CallId,Msg}},#state{udp=UDP,call_ids=CallIDs}=State) ->
+  {{IpFrom,PortFrom},_} = maps:get(CallId,CallIDs),
+  gen_udp:send(UDP, IpFrom, PortFrom, Msg),
+  {noreply, State};
+handle_cast({send_ringing,{CallId,Msg}},#state{udp=UDP,call_ids=CallIDs}=State) ->
+  {{IpFrom,PortFrom},_} = maps:get(CallId,CallIDs),
+  gen_udp:send(UDP, IpFrom, PortFrom, Msg),
+  {noreply, State};
+handle_cast({send_invite,{{IpFrom,PortFrom},{IpTo, PortTo}, SwappedMsg},CallId},#state{udp=UDP,call_ids=CallIDs}=State) ->
+  CallIds1 = maps:put(CallId, {{IpFrom,PortFrom},{IpTo, PortTo}}, CallIDs),
+  gen_udp:send(UDP, IpTo, PortTo, SwappedMsg),
+  {noreply, State#state{call_ids=CallIds1}};
 handle_cast({send,{FormIp, FromPort,Response}},#state{udp=UDP}=State) ->
   gen_udp:send(UDP, FormIp, FromPort, Response),
   {noreply, State};
@@ -99,7 +128,6 @@ handle_cast(_,State) ->
 
 handle_info({udp,_UdpPort,_FormIp, _FromPort, Msg}=Request, State) ->
   sip_test_util:parse(Request),
-  ?LOGINFO("Here is MSG: ~p ",[Msg]),
   {noreply, State};
 handle_info(_Info, State) ->
   {noreply, State}.
@@ -116,6 +144,30 @@ code_change(_OldVsn, State, _Extra) ->
 
 send({FormIp, FromPort,Response})->
   gen_server:cast(?MODULE,{send,{FormIp, FromPort,Response}}),
+  ok.
+
+send_invite({{IpFrom,PortFrom},{IP, PORT}, SwappedMsg},CallId)->
+  gen_server:cast(?MODULE,{send_invite,{{IpFrom,PortFrom},{IP, PORT}, SwappedMsg},CallId}),
+  ok.
+
+send_ringing(CallId,Msg)->
+  gen_server:cast(?MODULE,{send_ringing,{CallId,Msg}}),
+  ok.
+
+send_ok(CallId,Msg)->
+  gen_server:cast(?MODULE,{send_ok,{CallId,Msg}}),
+  ok.
+
+send_ack(CallId,Msg)->
+  gen_server:cast(?MODULE,{send_ack,{CallId,Msg}}),
+  ok.
+
+send_bye({IP, PORT}, Msg)->
+  gen_server:cast(?MODULE,{send_bye,{IP, PORT}, Msg}),
+  ok.
+
+send_bye_ok({IP,PORT},CallId,Msg)->
+  gen_server:cast(?MODULE,{send_bye_ok,{IP,PORT},CallId,Msg}),
   ok.
 
 change_udp_port(Port) ->
